@@ -7,6 +7,7 @@ A responsive chocolate storefront with Supabase customer accounts, a searchable 
 - `index.html` — homepage and featured products.
 - `shop.html` — searchable, category-filtered catalog.
 - `product.html?id=...` — product detail.
+- `bag.html` — review products and prepare a WhatsApp order.
 - `story.html` — the Cacao & Co. story and brand values.
 - `contact.html` — contact form demo; messages save to the admin inbox.
 - `account.html` — customer sign-in and account creation.
@@ -37,7 +38,7 @@ python3 -m http.server 8000
 
 Visit `http://localhost:8000`. Configure Supabase first; otherwise the pages display a setup notice instead of pretending database writes succeeded.
 
-Passwords are handled by Supabase Auth and are never stored by this site. Signed-in customer profiles and carts, products, homepage promotions, newsletter subscriptions, contact messages, and product/promotion changes are stored in Supabase. Admins can choose a product photo in the dashboard, trace it to SVG, preview it, and upload it to Supabase Storage. Contact messages are visible only to admins and can be marked handled; the demo form does not send email notifications. Checkout and order management are not implemented yet.
+Passwords are handled by Supabase Auth and are never stored by this site. Signed-in customer profiles and carts, products, homepage promotions, newsletter subscriptions, contact messages, and product/promotion changes are stored in Supabase. Admins can choose a product photo in the dashboard, trace it to SVG, preview it, and upload it to Supabase Storage. Contact messages are visible only to admins and can be marked handled; the demo form does not send email notifications. The bag page prepares a message with the selected items, quantities, and subtotal and opens WhatsApp; customers review and send the message themselves. Payments and delivery are confirmed directly with the shop.
 
 Product images can use remote URLs or be uploaded as traced SVGs to Supabase Storage. The admin dashboard loads ImageTracer.js to convert selected photos; the Supabase client and typefaces load from public CDNs.
 

@@ -121,6 +121,51 @@
     return rows.reduce((total, item) => total + item.quantity, 0);
   }
 
+  async function getCartItems() {
+    if (!configured) return null;
+    const session = await getSession();
+    if (!session) return null;
+    const rows = throwIfError(await requireClient().from("cart_items")
+      .select("product_id, quantity")
+      .eq("user_id", session.user.id)
+      .order("updated_at", { ascending: false }));
+    const products = new Map((await getProducts()).map((product) => [product.id, product]));
+    return rows.map(({ product_id, quantity }) => {
+      const product = products.get(product_id);
+      return product ? { ...product, quantity } : null;
+    }).filter(Boolean);
+  }
+
+  async function setCartItemQuantity(productId, quantity) {
+    if (!configured) return false;
+    const session = await getSession();
+    if (!session) return false;
+    const query = quantity < 1
+      ? requireClient().from("cart_items").delete()
+      : requireClient().from("cart_items").update({ quantity });
+    const result = await query.eq("user_id", session.user.id).eq("product_id", productId);
+    if (result.error) throw result.error;
+    return true;
+  }
+
+  async function mergeCartItem(productId, quantity) {
+    if (!configured) return false;
+    const session = await getSession();
+    if (!session) return false;
+    const existing = throwIfError(await requireClient().from("cart_items")
+      .select("quantity")
+      .eq("user_id", session.user.id)
+      .eq("product_id", productId)
+      .maybeSingle());
+    const result = await requireClient().from("cart_items").upsert({
+      user_id: session.user.id,
+      product_id: productId,
+      quantity: Math.min(99, (existing?.quantity ?? 0) + quantity)
+    }, { onConflict: "user_id,product_id" });
+    if (result.error) throw result.error;
+    return true;
+  }
+
   async function subscribeEmail(email) {
     return throwIfError(await requireClient().from("newsletter_subscribers").insert({ email: email.trim().toLowerCase() }));
   }
@@ -163,7 +208,7 @@
 
   window.CacaoDB = {
     configured, client, getProducts, saveProduct, deleteProduct, uploadProductImage, deleteProductImage, getBanner, saveBanner,
-    getSession, getProfile, addCartItem, getCartCount, subscribeEmail, getAdminActivity,
+    getSession, getProfile, addCartItem, getCartCount, getCartItems, setCartItemQuantity, mergeCartItem, subscribeEmail, getAdminActivity,
     sendContactMessage, getContactMessages, updateContactMessageStatus, getSubscriberCount,
     signIn: (email, password) => requireClient().auth.signInWithPassword({ email, password }),
     signUp: (email, password, displayName) => requireClient().auth.signUp({

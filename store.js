@@ -47,7 +47,61 @@
 
   function getCart() {
     const saved = localStorage.getItem(cartKey);
-    return saved === null ? [] : JSON.parse(saved);
+    if (saved === null) return [];
+    const items = JSON.parse(saved);
+    return Array.isArray(items) ? items.filter((item) =>
+      item && typeof item.id === "string" && Number.isInteger(item.quantity) && item.quantity >= 1 && item.quantity <= 99
+    ) : [];
+  }
+
+  async function getBagItems() {
+    const databaseItems = await window.CacaoDB.getCartItems();
+    if (databaseItems !== null) {
+      const guestItems = getCart();
+      if (!guestItems.length) return databaseItems;
+      for (const item of guestItems) {
+        const merged = await window.CacaoDB.mergeCartItem(item.id, item.quantity);
+        if (!merged) throw new Error("Sign in again to move your saved items into your account.");
+        localStorage.setItem(cartKey, JSON.stringify(getCart().filter((savedItem) => savedItem.id !== item.id)));
+      }
+      const mergedItems = await window.CacaoDB.getCartItems();
+      await updateCartCount();
+      return mergedItems ?? [];
+    }
+    const products = new Map((await getProducts()).map((product) => [product.id, product]));
+    return getCart().map((item) => {
+      const product = products.get(item.id);
+      return product ? { ...product, quantity: item.quantity } : null;
+    }).filter(Boolean);
+  }
+
+  async function setBagItemQuantity(productId, quantity) {
+    const requestedQuantity = Number(quantity);
+    if (!Number.isFinite(requestedQuantity)) throw new Error("Choose a valid quantity.");
+    const nextQuantity = Math.max(0, Math.min(99, Math.trunc(requestedQuantity)));
+    if (await window.CacaoDB.setCartItemQuantity(productId, nextQuantity)) {
+      await updateCartCount();
+      return;
+    }
+    const cart = getCart().filter((item) => item.id !== productId);
+    if (nextQuantity > 0) cart.push({ id: productId, quantity: nextQuantity });
+    localStorage.setItem(cartKey, JSON.stringify(cart));
+    await updateCartCount();
+  }
+
+  function buildWhatsAppOrderUrl(items) {
+    if (!items.length) throw new Error("Add a product to your bag before checking out.");
+    const total = items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+    const message = [
+      "Hello Cacao & Co.! I'd like to place an order:",
+      "",
+      ...items.map((item) => `- ${item.name} x ${item.quantity} — ${formatPrice(item.price * item.quantity)}`),
+      "",
+      `Total: ${formatPrice(total)}`,
+      "",
+      "Please confirm availability and delivery details."
+    ].join("\n");
+    return `https://wa.me/971522240750?text=${encodeURIComponent(message)}`;
   }
 
   async function updateCartCount() {
@@ -165,5 +219,9 @@
     });
   }
 
-  window.CacaoStore = { getProducts, saveProduct, deleteProduct, getBanner, saveBanner, formatPrice, productCard, escapeHtml, safeImageUrl, safeLink, initSite, showToast, showPageError, updateCartCount };
+  window.CacaoStore = {
+    getProducts, saveProduct, deleteProduct, getBanner, saveBanner, formatPrice, productCard,
+    escapeHtml, safeImageUrl, safeLink, getBagItems, setBagItemQuantity, buildWhatsAppOrderUrl,
+    initSite, showToast, showPageError, updateCartCount
+  };
 })();
