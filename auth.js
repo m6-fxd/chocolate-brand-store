@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function showCustomerAccount(session, profile) {
+    const isAdmin = profile.role === "admin";
     document.querySelector("#auth-title").textContent = `Hello, ${profile.display_name || "chocolate lover"}.`;
     document.querySelector("#auth-subtitle").textContent = "Lovely to have you back.";
     form.classList.add("is-hidden");
@@ -24,6 +25,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     panel.classList.remove("is-hidden");
     document.querySelector("#account-email").textContent = session.user.email;
     document.querySelector("#account-avatar").textContent = (profile.display_name || session.user.email || "C").slice(0, 1).toUpperCase();
+    document.querySelector("#account-shop-link").classList.toggle("is-hidden", isAdmin);
+    document.querySelector("#account-admin-link").classList.toggle("is-hidden", !isAdmin);
   }
 
   async function submitCustomer(event) {
@@ -52,10 +55,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       const signedIn = await getSignedInProfile();
       if (!signedIn) throw new Error("Your sign-in finished, but no session was returned. Please try again.");
-      if (signedIn.profile.role === "admin") {
-        location.href = "admin.html";
-        return;
-      }
       form.reset();
       showCustomerAccount(signedIn.session, signedIn.profile);
     } catch (error) {

@@ -14,7 +14,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script defer src="supabase-config.js"></script>
     <script defer src="db.js?v=owner-admin"></script>
-    <script defer src="auth.js?v=owner-admin"></script>
+    <script defer src="auth.js?v=admin-button"></script>
   </head>
   <body class="auth-body">
     <header class="site-header auth-header">
@@ -46,7 +46,8 @@
             <p class="account-welcome">You're signed in as</p>
             <strong id="account-email"></strong>
             <p class="account-small">Your account is ready for all the chocolate you love.</p>
-            <a class="button button-dark auth-submit" href="shop.html">Explore the collection <span>↗</span></a>
+            <a class="button button-dark auth-submit" id="account-shop-link" href="shop.html">Explore the collection <span>↗</span></a>
+            <a class="button button-dark auth-submit is-hidden" id="account-admin-link" href="admin.html">Open admin dashboard <span>↗</span></a>
             <button class="signout-button" id="customer-signout" type="button">Sign out</button>
           </div>
           <div class="auth-footnote"><span>✳</span> Your password is securely managed by Supabase.</div>

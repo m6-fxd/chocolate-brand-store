@@ -114,6 +114,19 @@
     document.querySelectorAll("#cart-count").forEach((element) => { element.textContent = count; });
   }
 
+  async function updateAdminLinks() {
+    const links = document.querySelectorAll("[data-admin-link]");
+    if (!links.length || !window.CacaoDB?.configured) return;
+    try {
+      const session = await window.CacaoDB.getSession();
+      if (!session) return;
+      const profile = await window.CacaoDB.getProfile(session.user.id);
+      if (profile.role === "admin") links.forEach((link) => link.classList.remove("is-hidden"));
+    } catch (error) {
+      showToast(`Admin access couldn't be checked: ${error.message}`);
+    }
+  }
+
   function showToast(message) {
     const toast = document.querySelector("#toast");
     if (!toast) return;
@@ -186,6 +199,7 @@
 
   function initSite() {
     updateCartCount();
+    updateAdminLinks();
     initMotion();
     if (!window.CacaoDB?.configured && !document.querySelector(".setup-banner")) {
       const notice = document.createElement("div");

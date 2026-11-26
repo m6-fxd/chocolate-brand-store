@@ -33,6 +33,8 @@ A responsive chocolate storefront with Supabase customer accounts, a searchable 
 
 The owner-only **Store administrators** panel can invite a new address or promote an existing account, and revoke their access later. Invited users receive Supabase's email invitation. Existing administrators keep their access, but cannot grant or remove roles. Direct profile-role updates are disabled for browser clients.
 
+The customer account page shows an **Open admin dashboard** button only for signed-in administrators. Public-page footer links to the admin dashboard are also hidden unless an administrator is signed in.
+
 ## Run locally
 
 ```sh
