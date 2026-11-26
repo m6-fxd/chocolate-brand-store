@@ -93,8 +93,49 @@
     showToast.timeout = window.setTimeout(() => toast.classList.remove("is-visible"), 2400);
   }
 
+  function initMotion() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const targets = document.querySelectorAll([
+      ".section-heading",
+      ".product-card",
+      ".story-image",
+      ".story-copy",
+      ".newsletter-section > *",
+      ".page-intro > *",
+      ".shop-toolbar",
+      ".detail-layout > *",
+      ".admin-welcome",
+      ".admin-card"
+    ].join(","));
+
+    if (!targets.length) return;
+    targets.forEach((element, index) => {
+      element.classList.add("reveal-on-scroll");
+      if (element.matches(".product-card")) {
+        element.style.setProperty("--reveal-delay", `${(index % 4) * 75}ms`);
+      }
+    });
+
+    if (!("IntersectionObserver" in window)) {
+      targets.forEach((element) => element.classList.add("is-revealed"));
+      return;
+    }
+
+    document.documentElement.classList.add("motion-ready");
+    const observer = new IntersectionObserver((entries, currentObserver) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-revealed");
+        currentObserver.unobserve(entry.target);
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -28px 0px" });
+    targets.forEach((element) => observer.observe(element));
+  }
+
   function initSite() {
     updateCartCount();
+    initMotion();
     document.addEventListener("click", (event) => {
       const button = event.target.closest("[data-add-to-cart]");
       if (!button) return;

@@ -22,3 +22,7 @@ Then visit `http://localhost:8000`.
 The admin and storefront share product, banner, and bag data through browser `localStorage`, so changes persist in the same browser. This is a front-end prototype, not a production commerce backend: there is no admin authentication, shared database, checkout, or connected newsletter service. Before deploying a live store, connect secure server-side admin authentication and persistent storage.
 
 Product and promotion images use remote image URLs. The typefaces are loaded from Google Fonts.
+
+## Netlify badge
+
+The “Powered by Netlify” badge is managed by Netlify, not this site's source files. If it is enabled for your project and your plan allows removal, turn it off in **Project configuration → General → Powered by Netlify badge**. Netlify may require a plan change if the control is locked.

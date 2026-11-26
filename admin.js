@@ -123,4 +123,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   populateBannerForm();
   renderProducts();
+  store.initSite();
 });
