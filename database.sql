@@ -81,6 +81,24 @@ create table if not exists public.newsletter_subscribers (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.contact_messages (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 1 and 80),
+  email text not null check (char_length(email) <= 254 and email = lower(trim(email))),
+  topic text not null check (topic in (
+    'A little help with an order',
+    'A gift question',
+    'Chocolate recommendation',
+    'Stockist or partnership',
+    'Just saying hello',
+    'Something else'
+  )),
+  message text not null check (char_length(message) between 10 and 2000),
+  consent boolean not null check (consent),
+  status text not null default 'new' check (status in ('new', 'handled')),
+  created_at timestamptz not null default now()
+);
+
 create or replace function public.add_cart_item(p_product_id text)
 returns void
 language plpgsql
@@ -137,6 +155,7 @@ alter table public.products enable row level security;
 alter table public.homepage_promotion enable row level security;
 alter table public.cart_items enable row level security;
 alter table public.newsletter_subscribers enable row level security;
+alter table public.contact_messages enable row level security;
 alter table public.store_audit_log enable row level security;
 
 drop policy if exists "Customers and admins can read profiles" on public.user_profiles;
@@ -187,6 +206,20 @@ create policy "Admins can read newsletter subscribers"
   on public.newsletter_subscribers for select to authenticated
   using ((select public.is_store_admin()));
 
+drop policy if exists "Anyone can submit a contact message" on public.contact_messages;
+create policy "Anyone can submit a contact message"
+  on public.contact_messages for insert to anon, authenticated
+  with check (consent is true);
+drop policy if exists "Admins can read contact messages" on public.contact_messages;
+create policy "Admins can read contact messages"
+  on public.contact_messages for select to authenticated
+  using ((select public.is_store_admin()));
+drop policy if exists "Admins can update contact message status" on public.contact_messages;
+create policy "Admins can update contact message status"
+  on public.contact_messages for update to authenticated
+  using ((select public.is_store_admin()))
+  with check ((select public.is_store_admin()));
+
 drop policy if exists "Admins can read audit history" on public.store_audit_log;
 create policy "Admins can read audit history"
   on public.store_audit_log for select to authenticated
@@ -227,6 +260,8 @@ grant select, update on public.user_profiles to authenticated;
 grant select, insert, update, delete on public.cart_items to authenticated;
 grant insert on public.newsletter_subscribers to anon, authenticated;
 grant select on public.newsletter_subscribers, public.store_audit_log to authenticated;
+grant insert on public.contact_messages to anon, authenticated;
+grant select, update on public.contact_messages to authenticated;
 grant insert, update, delete on public.products, public.homepage_promotion to authenticated;
 
 insert into public.products (id, name, category, description, price, size, image, badge, sort_order)

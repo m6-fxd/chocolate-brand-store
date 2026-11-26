@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="The story behind Cacao & Co. and our small-batch chocolate.">
+    <meta name="theme-color" content="#f6f0e7">
+    <title>Our story — Cacao & Co.</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script defer src="supabase-config.js"></script>
+    <script defer src="db.js"></script>
+    <script defer src="store.js"></script>
+    <script defer src="story.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="wordmark" href="index.html" aria-label="Cacao & Co. home">cacao<span>&</span>co.</a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="shop.html">Shop all</a>
+        <a class="active" href="story.html">Our story</a>
+        <a href="contact.html">Contact</a>
+        <a href="account.html">Account</a>
+      </nav>
+      <div class="header-actions">
+        <a class="bag-link" href="shop.html">Bag <span id="cart-count">0</span></a>
+        <button class="menu-toggle" aria-label="Open menu" aria-expanded="false">☰</button>
+      </div>
+    </header>
+    <main>
+      <section class="story-hero">
+        <div class="story-hero-image" role="img" aria-label="Chocolate made for sharing"></div>
+        <div class="story-hero-copy">
+          <span class="eyebrow">A little about us</span>
+          <h1>We believe in<br>the <em>little lovely</em><br>things.</h1>
+          <p>That first square after a long day. The last bite you save for someone. Chocolate has a way of making a moment feel like yours.</p>
+          <a class="button button-dark" href="shop.html">Find your little moment <span>↗</span></a>
+        </div>
+        <span class="story-hero-caption">CACAO & CO. · MADE WITH FEELING</span>
+      </section>
+
+      <section class="story-manifesto section-shell">
+        <div class="manifesto-mark" aria-hidden="true">c<span>&</span>c.</div>
+        <div>
+          <span class="eyebrow">The simple idea</span>
+          <h2>Chocolate should feel<br>like a small celebration.</h2>
+          <p>Not saved for a special occasion. Not overthought. Just thoughtful, beautifully made chocolate that brings a little more pleasure to an ordinary Tuesday.</p>
+        </div>
+      </section>
+
+      <section class="story-values">
+        <div class="story-values-image" role="img" aria-label="Carefully crafted chocolate"></div>
+        <div class="story-values-copy">
+          <span class="eyebrow">Good things take care</span>
+          <h2>From the first<br>ingredient to the<br><em>last little bite.</em></h2>
+          <p>We keep our approach simple: start with carefully sourced cacao, choose ingredients for their flavor, and make each batch with the care it deserves.</p>
+          <p>No fuss. Nothing to hide. Just chocolate made to be opened, passed around, and enjoyed at your own pace.</p>
+        </div>
+      </section>
+
+      <section class="story-ritual section-shell">
+        <span class="eyebrow">Our kind of perfect</span>
+        <h2>A little slower.<br><em>A lot more delicious.</em></h2>
+        <p>Break off a piece. Let it melt. Share the rest—or don't. There's no wrong way to make a moment your own.</p>
+        <a class="text-link" href="contact.html">Say hello, we'd love to hear from you <span>↗</span></a>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <a class="wordmark" href="index.html">cacao<span>&</span>co.</a>
+      <span>Chocolate for the moments worth savoring.</span>
+      <div><a href="shop.html">Shop</a><a href="contact.html">Contact</a><a href="admin-login.html">Admin</a><span>© 2026 Cacao & Co.</span></div>
+    </footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

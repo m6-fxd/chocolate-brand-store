@@ -76,6 +76,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       </div>`).join("") : '<p class="empty-state">Your store updates will appear here.</p>';
   }
 
+  async function renderContactMessages() {
+      const messages = await db.getContactMessages();
+      document.querySelector("#contact-total").textContent = messages.filter((message) => message.status === "new").length;
+      document.querySelector("#admin-contact-list").innerHTML = messages.length ? messages.map((message) => `
+        <article class="admin-contact-message">
+          <div class="admin-contact-message-heading">
+            <div><strong>${store.escapeHtml(message.name)}</strong><a href="mailto:${store.escapeHtml(message.email)}">${store.escapeHtml(message.email)}</a></div>
+            <div class="admin-contact-message-meta"><span class="contact-status contact-status-${store.escapeHtml(message.status)}">${store.escapeHtml(message.status)}</span><time datetime="${store.escapeHtml(message.created_at)}">${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.created_at))}</time></div>
+          </div>
+          <span class="admin-contact-topic">${store.escapeHtml(message.topic)}</span>
+          <p>${store.escapeHtml(message.message)}</p>
+          ${message.status === "new" ? `<button class="row-action" type="button" data-contact-handled="${store.escapeHtml(message.id)}">Mark handled</button>` : ""}
+        </article>`).join("") : '<p class="empty-state">No notes yet. They will appear here when someone writes in.</p>';
+  }
+
   function clearProductForm() {
     productForm.reset();
     productForm.elements.id.value = "";
@@ -197,6 +212,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  document.querySelector("#admin-contact-list").addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-contact-handled]");
+    if (!button) return;
+    button.disabled = true;
+    try {
+      await db.updateContactMessageStatus(button.dataset.contactHandled, "handled");
+      await renderContactMessages();
+    } catch (error) {
+      store.showToast(`Couldn't update the message: ${error.message}`);
+      button.disabled = false;
+    }
+  });
+
   document.querySelector("#admin-signout").addEventListener("click", async () => {
     try {
       const result = await db.signOut();
@@ -213,7 +241,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     populateBannerForm(banner);
     products = productRows;
     renderProducts();
-    await renderActivity();
+    await Promise.all([renderActivity(), renderContactMessages()]);
   } catch (error) {
     store.showPageError(`Couldn't load the admin workspace: ${error.message}`);
   }

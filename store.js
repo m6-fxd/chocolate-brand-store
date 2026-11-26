@@ -93,6 +93,15 @@
       ".page-intro > *",
       ".shop-toolbar",
       ".detail-layout > *",
+      ".story-hero-copy",
+      ".story-manifesto > *",
+      ".story-values-image",
+      ".story-values-copy",
+      ".story-ritual > *",
+      ".contact-hero > *",
+      ".contact-aside",
+      ".contact-form-card",
+      ".contact-bottom > *",
       ".admin-welcome",
       ".admin-card"
     ].join(","));

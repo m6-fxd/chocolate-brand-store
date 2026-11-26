@@ -94,6 +94,32 @@
     return throwIfError(await requireClient().from("newsletter_subscribers").insert({ email: email.trim().toLowerCase() }));
   }
 
+  async function sendContactMessage(message) {
+    const row = {
+      name: message.name,
+      email: message.email.trim().toLowerCase(),
+      topic: message.topic,
+      message: message.message,
+      consent: true
+    };
+    return throwIfError(await requireClient().from("contact_messages").insert(row));
+  }
+
+  async function getContactMessages() {
+    return throwIfError(await requireClient().from("contact_messages")
+      .select("id, name, email, topic, message, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(20));
+  }
+
+  async function updateContactMessageStatus(id, status) {
+    return throwIfError(await requireClient().from("contact_messages")
+      .update({ status })
+      .eq("id", id)
+      .select("id, status")
+      .single());
+  }
+
   async function getAdminActivity() {
     return throwIfError(await requireClient().from("store_audit_log").select("action, record_type, record_id, created_at").order("created_at", { ascending: false }).limit(12));
   }
@@ -107,7 +133,7 @@
   window.CacaoDB = {
     configured, client, getProducts, saveProduct, deleteProduct, getBanner, saveBanner,
     getSession, getProfile, addCartItem, getCartCount, subscribeEmail, getAdminActivity,
-    getSubscriberCount,
+    sendContactMessage, getContactMessages, updateContactMessageStatus, getSubscriberCount,
     signIn: (email, password) => requireClient().auth.signInWithPassword({ email, password }),
     signUp: (email, password, displayName) => requireClient().auth.signUp({
       email,
