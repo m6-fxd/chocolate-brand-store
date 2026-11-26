@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 900" fill="none">
+  <defs>
+    <linearGradient id="backdrop" x1="0" y1="0" x2="760" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#79503b"/>
+      <stop offset="1" stop-color="#321c18"/>
+    </linearGradient>
+    <linearGradient id="foil" x1="175" y1="252" x2="600" y2="645" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f2d9ad"/>
+      <stop offset=".5" stop-color="#c59a69"/>
+      <stop offset="1" stop-color="#f4e3bf"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff5db" stop-opacity="0"/>
+      <stop offset=".48" stop-color="#fff5db" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#fff5db" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" width="54" height="54" patternUnits="userSpaceOnUse">
+      <path d="M54 0H0V54" stroke="#fff" stroke-opacity=".055"/>
+    </pattern>
+    <clipPath id="bar-clip"><rect x="177" y="243" width="415" height="470" rx="26"/></clipPath>
+  </defs>
+  <style>
+    .bean-one{transform-box:fill-box;transform-origin:center;animation:bean-float 7s ease-in-out infinite}
+    .bean-two{transform-box:fill-box;transform-origin:center;animation:bean-float 8s ease-in-out -2s infinite reverse}
+    .orbit-one{animation:orbit-pulse 4s ease-in-out infinite alternate}
+    .foil-shine{animation:foil-sweep 5.5s ease-in-out 1s infinite}
+    @keyframes bean-float{0%,100%{translate:0 0;rotate:0deg}50%{translate:0 -15px;rotate:6deg}}
+    @keyframes orbit-pulse{from{opacity:.35;transform:scale(.85)}to{opacity:1;transform:scale(1.16)}}
+    @keyframes foil-sweep{0%,25%{translate:-380px 0;opacity:0}40%{opacity:.42}68%,100%{translate:390px 0;opacity:0}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+  </style>
+  <rect width="760" height="900" fill="url(#backdrop)"/>
+  <rect width="760" height="900" fill="url(#grid)"/>
+  <circle cx="595" cy="170" r="152" fill="#c8885c" fill-opacity=".12"/>
+  <circle cx="153" cy="717" r="201" fill="#edc78d" fill-opacity=".08"/>
+  <g class="bean bean-one" transform="rotate(-23 151 263)">
+    <path d="M150 177c43 0 69 46 69 88s-26 83-69 83-69-41-69-83 26-88 69-88Z" fill="#45261f" stroke="#d3a375" stroke-opacity=".58" stroke-width="2"/>
+    <path d="M150 185c-25 34-24 112 1 155" stroke="#e6bf91" stroke-opacity=".62" stroke-width="3"/>
+  </g>
+  <g class="bean bean-two" transform="rotate(19 631 604)">
+    <path d="M630 520c43 0 68 45 68 85s-25 82-68 82-68-42-68-82 25-85 68-85Z" fill="#49271e" stroke="#d3a375" stroke-opacity=".6" stroke-width="2"/>
+    <path d="M630 528c-24 32-23 108 1 151" stroke="#e6bf91" stroke-opacity=".62" stroke-width="3"/>
+  </g>
+  <g class="orbit orbit-one"><circle cx="594" cy="355" r="8" fill="#f3d9aa"/><circle cx="163" cy="556" r="5" fill="#f3d9aa" fill-opacity=".75"/></g>
+  <g transform="rotate(-9 384 478)" filter="drop-shadow(0 30px 35px #1f100e80)">
+    <rect x="177" y="243" width="415" height="470" rx="26" fill="url(#foil)"/>
+    <g clip-path="url(#bar-clip)" opacity=".98">
+      <path d="M204 272h166v178H204zM389 272h176v178H389zM204 469h166v208H204zM389 469h176v208H389z" fill="#633a2c"/>
+      <path d="M213 281h148v160H213zM398 281h158v160H398zM213 478h148v190H213zM398 478h158v190H398z" fill="#794a36"/>
+      <path d="M213 281h148v160H213zM398 281h158v160H398zM213 478h148v190H213zM398 478h158v190H398z" stroke="#d4aa79" stroke-opacity=".53" stroke-width="3"/>
+      <path d="M190 263h42v470h-42z" fill="#fff1d2" fill-opacity=".14"/>
+    </g>
+    <rect x="177" y="243" width="415" height="470" rx="26" stroke="#f8e6c6" stroke-opacity=".58" stroke-width="2"/>
+    <path d="M262 413c22-31 50-46 83-46 34 0 63 15 85 46-22 31-51 47-85 47-33 0-61-16-83-47Z" fill="#f4e4c6"/>
+    <text x="345" y="423" fill="#513127" text-anchor="middle" font-family="Georgia,serif" font-size="26" letter-spacing="3">CACAO</text>
+    <text x="345" y="490" fill="#f8ebd3" text-anchor="middle" font-family="Georgia,serif" font-size="25" letter-spacing="4">DARK</text>
+    <text x="345" y="524" fill="#f0d7b4" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" letter-spacing="4">A LITTLE MORE DELICIOUS</text>
+    <path class="foil-shine" d="M222 250h66L533 709h-66z" fill="url(#shine)" opacity=".42"/>
+  </g>
+  <text x="58" y="817" fill="#f2dfc0" fill-opacity=".84" font-family="Arial,sans-serif" font-size="12" letter-spacing="5">SMALL BATCH · BIG FEELING</text>
+</svg>

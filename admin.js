@@ -1,18 +1,52 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const store = window.CacaoStore;
+  const db = window.CacaoDB;
   const bannerForm = document.querySelector("#banner-form");
   const productForm = document.querySelector("#product-form");
   const feedback = document.querySelector("#product-feedback");
   const bannerFeedback = document.querySelector("#banner-feedback");
-  let products = store.getProducts();
-  let banner = store.getBanner();
+  let products = [];
 
+  if (!db.configured) {
+    document.body.classList.remove("auth-pending");
+    store.showPageError("Connect Supabase and run database.sql before using the admin workspace.");
+    location.href = "admin-login.html";
+    return;
+  }
+
+  try {
+    const session = await db.getSession();
+    if (!session) {
+      location.replace("admin-login.html");
+      return;
+    }
+    const profile = await db.getProfile(session.user.id);
+    if (profile.role !== "admin") {
+      await db.signOut();
+      location.replace("admin-login.html");
+      return;
+    }
+  } catch {
+    location.replace("admin-login.html");
+    return;
+  }
+
+  document.body.classList.remove("auth-pending");
+  store.initSite();
   document.querySelector("#admin-date").textContent = new Intl.DateTimeFormat("en-US", {
     weekday: "long", month: "long", day: "numeric"
   }).format(new Date());
 
-  function populateBannerForm() {
-    for (const [name, value] of Object.entries(banner)) {
+  function populateBannerForm(banner) {
+    const fields = {
+      eyebrow: banner.eyebrow,
+      title: banner.title,
+      description: banner.description,
+      buttonText: banner.buttonText,
+      buttonLink: banner.buttonLink,
+      image: banner.image
+    };
+    for (const [name, value] of Object.entries(fields)) {
       if (bannerForm.elements[name]) bannerForm.elements[name].value = value;
     }
   }
@@ -29,6 +63,19 @@ document.addEventListener("DOMContentLoaded", () => {
       </article>`).join("") : '<p class="empty-state">No products yet. Add something lovely above.</p>';
   }
 
+  async function renderActivity() {
+    const [activity, subscriberCount] = await Promise.all([db.getAdminActivity(), db.getSubscriberCount()]);
+    document.querySelector("#subscriber-count").textContent = subscriberCount ?? 0;
+    document.querySelector("#activity-count").textContent = activity.length;
+    document.querySelector("#admin-activity-list").innerHTML = activity.length ? activity.map((item) => `
+      <div class="admin-activity-row">
+        <span class="activity-dot"></span>
+        <strong>${store.escapeHtml(item.action.toLowerCase())} ${store.escapeHtml(item.record_type.replaceAll("_", " "))}</strong>
+        <span>${store.escapeHtml(item.record_id)}</span>
+        <time datetime="${store.escapeHtml(item.created_at)}">${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.created_at))}</time>
+      </div>`).join("") : '<p class="empty-state">Your store updates will appear here.</p>';
+  }
+
   function clearProductForm() {
     productForm.reset();
     productForm.elements.id.value = "";
@@ -37,8 +84,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelector("#cancel-edit").classList.add("is-hidden");
   }
 
-  bannerForm.addEventListener("submit", (event) => {
+  bannerForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const submit = bannerForm.querySelector('[type="submit"]');
     const values = new FormData(bannerForm);
     const imageInput = String(values.get("image")).trim();
     const linkInput = String(values.get("buttonLink")).trim();
@@ -50,19 +98,29 @@ document.addEventListener("DOMContentLoaded", () => {
       bannerFeedback.textContent = "Please enter a destination for the button.";
       return;
     }
-    banner = {
-      eyebrow: String(values.get("eyebrow")).trim(),
-      title: String(values.get("title")).trim(),
-      description: String(values.get("description")).trim(),
-      buttonText: String(values.get("buttonText")).trim(),
-      buttonLink: store.safeLink(linkInput),
-      image: imageInput ? store.safeImageUrl(imageInput) : banner.image
-    };
-    store.saveBanner(banner);
-    bannerFeedback.textContent = "Promotion saved. Your homepage is looking lovely.";
+    const originalText = submit.innerHTML;
+    submit.disabled = true;
+    bannerFeedback.textContent = "";
+    try {
+      await store.saveBanner({
+        eyebrow: String(values.get("eyebrow")).trim(),
+        title: String(values.get("title")).trim(),
+        description: String(values.get("description")).trim(),
+        buttonText: String(values.get("buttonText")).trim(),
+        buttonLink: store.safeLink(linkInput),
+        image: store.safeImageUrl(imageInput) || String(bannerForm.elements.image.dataset.savedImage || "")
+      });
+      bannerFeedback.textContent = "Promotion saved to your store.";
+      await renderActivity();
+    } catch (error) {
+      bannerFeedback.textContent = `Couldn't save the promotion: ${error.message}`;
+    } finally {
+      submit.disabled = false;
+      submit.innerHTML = originalText;
+    }
   });
 
-  productForm.addEventListener("submit", (event) => {
+  productForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const values = new FormData(productForm);
     const image = String(values.get("image")).trim();
@@ -75,6 +133,10 @@ document.addEventListener("DOMContentLoaded", () => {
       feedback.textContent = "Please enter a price greater than zero.";
       return;
     }
+    const submit = document.querySelector("#product-submit");
+    const originalText = submit.innerHTML;
+    submit.disabled = true;
+    feedback.textContent = "";
     const id = String(values.get("id")) || (crypto.randomUUID ? crypto.randomUUID() : `product-${Date.now()}`);
     const product = {
       id,
@@ -86,17 +148,23 @@ document.addEventListener("DOMContentLoaded", () => {
       image: store.safeImageUrl(image),
       badge: String(values.get("badge")).trim()
     };
-    const existingIndex = products.findIndex((item) => item.id === id);
-    if (existingIndex < 0) products.push(product);
-    else products[existingIndex] = product;
-    store.saveProducts(products);
-    renderProducts();
-    clearProductForm();
-    feedback.textContent = existingIndex < 0 ? "Product added to your collection." : "Product updated.";
+    try {
+      await store.saveProduct(product);
+      products = await store.getProducts();
+      renderProducts();
+      clearProductForm();
+      feedback.textContent = "Product saved to your collection.";
+      await renderActivity();
+    } catch (error) {
+      feedback.textContent = `Couldn't save the product: ${error.message}`;
+    } finally {
+      submit.disabled = false;
+      submit.innerHTML = originalText;
+    }
   });
 
   document.querySelector("#cancel-edit").addEventListener("click", clearProductForm);
-  document.querySelector("#admin-product-list").addEventListener("click", (event) => {
+  document.querySelector("#admin-product-list").addEventListener("click", async (event) => {
     const editButton = event.target.closest("[data-edit]");
     const deleteButton = event.target.closest("[data-delete]");
     if (editButton) {
@@ -114,14 +182,39 @@ document.addEventListener("DOMContentLoaded", () => {
     if (deleteButton) {
       const product = products.find((item) => item.id === deleteButton.dataset.delete);
       if (!product || !window.confirm(`Remove ${product.name} from the collection?`)) return;
-      products = products.filter((item) => item.id !== product.id);
-      store.saveProducts(products);
-      renderProducts();
-      feedback.textContent = `${product.name} was removed.`;
+      deleteButton.disabled = true;
+      try {
+        await store.deleteProduct(product.id);
+        products = await store.getProducts();
+        renderProducts();
+        feedback.textContent = `${product.name} was removed.`;
+        await renderActivity();
+      } catch (error) {
+        feedback.textContent = `Couldn't remove the product: ${error.message}`;
+      } finally {
+        deleteButton.disabled = false;
+      }
     }
   });
 
-  populateBannerForm();
-  renderProducts();
-  store.initSite();
+  document.querySelector("#admin-signout").addEventListener("click", async () => {
+    try {
+      const result = await db.signOut();
+      if (result.error) throw result.error;
+      location.replace("admin-login.html");
+    } catch (error) {
+      store.showToast(`Couldn't sign out: ${error.message}`);
+    }
+  });
+
+  try {
+    const [banner, productRows] = await Promise.all([store.getBanner(), store.getProducts()]);
+    bannerForm.elements.image.dataset.savedImage = banner.image;
+    populateBannerForm(banner);
+    products = productRows;
+    renderProducts();
+    await renderActivity();
+  } catch (error) {
+    store.showPageError(`Couldn't load the admin workspace: ${error.message}`);
+  }
 });

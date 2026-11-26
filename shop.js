@@ -1,16 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
   const store = window.CacaoStore;
-  const products = store.getProducts();
   const filters = document.querySelector("#filters");
   const search = document.querySelector("#product-search");
   const grid = document.querySelector("#shop-products");
   const count = document.querySelector("#results-count");
   let activeCategory = "All chocolate";
-  const categories = ["All chocolate", ...new Set(products.map((product) => product.category))];
-
-  filters.innerHTML = categories.map((category, index) =>
-    `<button class="filter-chip${index === 0 ? " is-active" : ""}" type="button" data-category="${store.escapeHtml(category)}" aria-pressed="${index === 0}">${store.escapeHtml(category)}</button>`
-  ).join("");
+  let products = [];
 
   function render() {
     const query = search.value.trim().toLowerCase();
@@ -36,6 +31,13 @@ document.addEventListener("DOMContentLoaded", () => {
     render();
   });
   search.addEventListener("input", render);
-  render();
+  store.getProducts().then((items) => {
+    products = items;
+    const categories = ["All chocolate", ...new Set(products.map((product) => product.category))];
+    filters.innerHTML = categories.map((category, index) =>
+      `<button class="filter-chip${index === 0 ? " is-active" : ""}" type="button" data-category="${store.escapeHtml(category)}" aria-pressed="${index === 0}">${store.escapeHtml(category)}</button>`
+    ).join("");
+    render();
+  }).catch((error) => store.showPageError(error.message));
   store.initSite();
 });

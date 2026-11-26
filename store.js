@@ -1,28 +1,11 @@
 (() => {
-  const productKey = "cacao-co-products-v1";
-  const bannerKey = "cacao-co-banner-v1";
   const cartKey = "cacao-co-cart-v1";
-  const photo = (id, width = 900) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=85`;
-  const defaultProducts = [
-    { id: "midnight-crunch", name: "Midnight Crunch", category: "Dark chocolate", description: "Deep, silky dark chocolate with a little roasted almond crunch and a pinch of flaky sea salt.", price: 12, size: "80g bar", image: photo("photo-1606313564200-e75d5e30476c"), badge: "Bestseller" },
-    { id: "milk-honey", name: "Milk & Honey", category: "Milk chocolate", description: "Creamy, dreamy milk chocolate with a hint of golden honey. A soft spot in every day.", price: 11, size: "80g bar", image: photo("photo-1548907040-4d42baa1d13a"), badge: "A little favorite" },
-    { id: "berry-blush", name: "Berry Blush", category: "White chocolate", description: "Sweet white chocolate meets bright, tart raspberry. The fun one in the box.", price: 13, size: "80g bar", image: photo("photo-1511381939415-e44015466834"), badge: "" },
-    { id: "the-slow-sunday", name: "The Slow Sunday", category: "Gift boxes", description: "A thoughtful collection of our most-loved bars, ready to make somebody's day.", price: 28, size: "4-piece box", image: photo("photo-1549007994-cb92caebd54b"), badge: "Made for sharing" },
-    { id: "orange-grove", name: "Orange Grove", category: "Dark chocolate", description: "Bright citrus peel tucked into rich dark chocolate. A little sunshine, whenever you need it.", price: 12, size: "80g bar", image: photo("photo-1606313564200-e75d5e30476c"), badge: "" },
-    { id: "soft-center", name: "Soft Center", category: "Gift boxes", description: "A box of tender, hand-finished ganache truffles for the people you love (including you).", price: 24, size: "9-piece box", image: photo("photo-1548907040-4d42baa1d13a"), badge: "Gift-ready" }
-  ];
-  const defaultBanner = {
-    eyebrow: "A sweeter kind of everyday",
-    title: "A little more delicious.",
-    description: "Small-batch chocolate, made slowly and shared generously. Find your new favorite little ritual.",
-    buttonText: "Discover the collection",
-    buttonLink: "shop.html",
-    image: photo("photo-1606313564200-e75d5e30476c", 1400)
-  };
 
   function safeImageUrl(value) {
     try {
-      const url = new URL(value, window.location.href);
+      const image = String(value || "").trim();
+      if (!image) return "";
+      const url = new URL(image);
       return ["https:", "http:"].includes(url.protocol) ? url.href : "";
     } catch {
       return "";
@@ -41,23 +24,11 @@
     })[character]);
   }
 
-  function getProducts() {
-    const saved = localStorage.getItem(productKey);
-    return saved === null ? defaultProducts.map((product) => ({ ...product })) : JSON.parse(saved);
-  }
-
-  function saveProducts(products) {
-    localStorage.setItem(productKey, JSON.stringify(products));
-  }
-
-  function getBanner() {
-    const saved = localStorage.getItem(bannerKey);
-    return saved === null ? { ...defaultBanner } : { ...defaultBanner, ...JSON.parse(saved) };
-  }
-
-  function saveBanner(banner) {
-    localStorage.setItem(bannerKey, JSON.stringify(banner));
-  }
+  const getProducts = () => window.CacaoDB.getProducts();
+  const saveProduct = (product) => window.CacaoDB.saveProduct(product);
+  const deleteProduct = (id) => window.CacaoDB.deleteProduct(id);
+  const getBanner = () => window.CacaoDB.getBanner();
+  const saveBanner = (banner) => window.CacaoDB.saveBanner(banner);
 
   function formatPrice(price) {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(price));
@@ -79,8 +50,13 @@
     return saved === null ? [] : JSON.parse(saved);
   }
 
-  function updateCartCount() {
-    const count = getCart().reduce((total, item) => total + item.quantity, 0);
+  async function updateCartCount() {
+    let count = getCart().reduce((total, item) => total + item.quantity, 0);
+    try {
+      count = (await window.CacaoDB.getCartCount()) ?? count;
+    } catch (error) {
+      showToast(`Bag could not be refreshed: ${error.message}`);
+    }
     document.querySelectorAll("#cart-count").forEach((element) => { element.textContent = count; });
   }
 
@@ -91,6 +67,18 @@
     toast.classList.add("is-visible");
     window.clearTimeout(showToast.timeout);
     showToast.timeout = window.setTimeout(() => toast.classList.remove("is-visible"), 2400);
+  }
+
+  function showPageError(message) {
+    let error = document.querySelector(".page-error");
+    if (!error) {
+      error = document.createElement("div");
+      error.className = "page-error";
+      const main = document.querySelector("main");
+      if (main) main.prepend(error);
+      else document.body.prepend(error);
+    }
+    error.textContent = message;
   }
 
   function initMotion() {
@@ -136,17 +124,27 @@
   function initSite() {
     updateCartCount();
     initMotion();
+    if (!window.CacaoDB?.configured && !document.querySelector(".setup-banner")) {
+      const notice = document.createElement("div");
+      notice.className = "setup-banner";
+      notice.textContent = "Store setup required: add your Supabase project URL and publishable key to supabase-config.js, then run database.sql.";
+      document.body.prepend(notice);
+    }
     document.addEventListener("click", (event) => {
       const button = event.target.closest("[data-add-to-cart]");
       if (!button) return;
       const id = button.dataset.addToCart;
-      const cart = getCart();
-      const existing = cart.find((item) => item.id === id);
-      if (existing) existing.quantity += 1;
-      else cart.push({ id, quantity: 1 });
-      localStorage.setItem(cartKey, JSON.stringify(cart));
-      updateCartCount();
-      showToast("A little something added to your bag.");
+      window.CacaoDB.addCartItem(id).then((saved) => {
+        if (!saved) {
+          const cart = getCart();
+          const existing = cart.find((item) => item.id === id);
+          if (existing) existing.quantity += 1;
+          else cart.push({ id, quantity: 1 });
+          localStorage.setItem(cartKey, JSON.stringify(cart));
+        }
+        return updateCartCount();
+      }).then(() => showToast("A little something added to your bag."))
+        .catch((error) => showToast(`Could not add that to your bag: ${error.message}`));
     });
     document.querySelectorAll(".menu-toggle").forEach((button) => {
       button.addEventListener("click", () => {
@@ -158,5 +156,5 @@
     });
   }
 
-  window.CacaoStore = { getProducts, saveProducts, getBanner, saveBanner, formatPrice, productCard, escapeHtml, safeImageUrl, safeLink, initSite, showToast };
+  window.CacaoStore = { getProducts, saveProduct, deleteProduct, getBanner, saveBanner, formatPrice, productCard, escapeHtml, safeImageUrl, safeLink, initSite, showToast, showPageError, updateCartCount };
 })();
