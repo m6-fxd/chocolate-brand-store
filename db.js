@@ -112,7 +112,10 @@
     signUp: (email, password, displayName) => requireClient().auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName }, emailRedirectTo: `${location.origin}/account.html` }
+      options: {
+        data: { display_name: displayName },
+        emailRedirectTo: new URL("account.html", location.href).href
+      }
     }),
     signOut: () => requireClient().auth.signOut()
   };

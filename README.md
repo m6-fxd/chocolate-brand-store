@@ -39,6 +39,15 @@ Passwords are handled by Supabase Auth and are never stored by this site. Signed
 
 Product images use remote URLs; the typefaces load from Google Fonts and the Supabase client loads from jsDelivr.
 
+## GitHub Pages
+
+1. In the repository, open **Settings → Pages**. Select **Deploy from a branch**, choose `main` and the `/ (root)` folder, then save. If Pages is unavailable for this private repository, make the repository public or use a GitHub plan that supports Pages for private repositories.
+2. The project site URL is `https://m6-fxd.github.io/chocolate-brand-store/`.
+3. In Supabase **Authentication → URL Configuration**, set that URL as the Site URL and add `https://m6-fxd.github.io/chocolate-brand-store/account.html` to the allowed redirect URLs.
+4. Wait for the Pages deployment, then check the account and admin pages at `/chocolate-brand-store/account.html` and `/chocolate-brand-store/admin-login.html`.
+
+The signup confirmation redirect automatically preserves the GitHub Pages repository path.
+
 ## Netlify badge
 
 The “Powered by Netlify” badge is managed by Netlify, not this site's source files. If it is enabled for your project and your plan allows removal, turn it off in **Project configuration → General → Powered by Netlify badge**. Netlify may require a plan change if the control is locked.
