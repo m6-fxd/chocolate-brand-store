@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const imageSize = document.querySelector("#product-image-size");
   let convertedSvg = null;
   let previewUrl = "";
+  let conversionId = 0;
   let products = [];
 
   if (!db.configured) {
@@ -100,6 +101,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function clearProductForm() {
+    conversionId += 1;
     productForm.reset();
     productForm.elements.id.value = "";
     clearConvertedImage();
@@ -138,6 +140,39 @@ document.addEventListener("DOMContentLoaded", async () => {
     return new XMLSerializer().serializeToString(root);
   }
 
+  function traceImage(imageData) {
+    return new Promise((resolve, reject) => {
+      const worker = new Worker(new URL("svg-tracer-worker.js", document.baseURI));
+      const timeout = window.setTimeout(() => {
+        worker.terminate();
+        reject(new Error("This image has too much detail to convert quickly. Try a simpler photo."));
+      }, 30000);
+      const finish = (callback, value) => {
+        window.clearTimeout(timeout);
+        worker.terminate();
+        callback(value);
+      };
+
+      worker.addEventListener("message", (event) => {
+        if (event.data.error) finish(reject, new Error(event.data.error));
+        else finish(resolve, event.data.svg);
+      }, { once: true });
+      worker.addEventListener("error", () => {
+        finish(reject, new Error("The SVG converter failed to load. Check your connection and try again."));
+      }, { once: true });
+
+      try {
+        worker.postMessage({
+          pixels: imageData.data.buffer,
+          width: imageData.width,
+          height: imageData.height
+        }, [imageData.data.buffer]);
+      } catch (error) {
+        finish(reject, error);
+      }
+    });
+  }
+
   async function convertPhoto() {
     const file = photoInput.files[0];
     if (!file) return;
@@ -151,17 +186,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       vectorizeFeedback.classList.add("is-error");
       return;
     }
-    if (!window.ImageTracer?.imagedataToSVG) {
-      vectorizeFeedback.textContent = "The SVG converter didn't load. Refresh the page and try again.";
-      vectorizeFeedback.classList.add("is-error");
-      return;
-    }
 
-    vectorizeButton.disabled = true;
-    vectorizeFeedback.classList.remove("is-error");
-    vectorizeFeedback.textContent = "Tracing the colors into a scalable SVG…";
+    const requestId = ++conversionId;
     clearConvertedImage();
     vectorizeButton.disabled = true;
+    vectorizeFeedback.classList.remove("is-error");
+    vectorizeFeedback.textContent = "Tracing your photo into SVG…";
 
     try {
       const sourceUrl = URL.createObjectURL(file);
@@ -180,7 +210,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (image.naturalWidth > 12000 || image.naturalHeight > 12000) {
         throw new Error("That photo is too large to trace. Try an image under 12,000 pixels per side.");
       }
-      const scale = Math.min(1, 720 / Math.max(image.naturalWidth, image.naturalHeight));
+      const scale = Math.min(1, 420 / Math.max(image.naturalWidth, image.naturalHeight));
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
       canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -188,16 +218,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!context) throw new Error("Your browser couldn't prepare the image for conversion.");
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-      const traced = window.ImageTracer.imagedataToSVG(context.getImageData(0, 0, canvas.width, canvas.height), {
-        numberofcolors: 12,
-        colorsampling: 2,
-        ltres: 1,
-        qtres: 1,
-        pathomit: 8,
-        roundcoords: 1,
-        scale: 1,
-        strokewidth: 0
-      });
+      const traced = await traceImage(context.getImageData(0, 0, canvas.width, canvas.height));
+      if (requestId !== conversionId) return;
       const svgBlob = new Blob([sanitizeSvg(traced)], { type: "image/svg+xml" });
       if (svgBlob.size > 4 * 1024 * 1024) {
         throw new Error("The traced SVG is too large to upload. Try a simpler photo with fewer details.");
@@ -210,28 +232,32 @@ document.addEventListener("DOMContentLoaded", async () => {
       vectorizeFeedback.textContent = "SVG ready. It will upload when you save the product.";
       productForm.elements.image.value = "";
     } catch (error) {
+      if (requestId !== conversionId) return;
       vectorizeFeedback.textContent = error.message || "We couldn't convert that photo.";
       vectorizeFeedback.classList.add("is-error");
     } finally {
-      vectorizeButton.disabled = !photoInput.files.length;
+      if (requestId === conversionId) vectorizeButton.disabled = !photoInput.files.length;
     }
   }
 
   photoInput.addEventListener("change", () => {
+    conversionId += 1;
     clearConvertedImage();
     if (photoInput.files.length) {
       productForm.elements.image.value = "";
       vectorizeButton.disabled = false;
-      convertPhoto();
+      vectorizeFeedback.textContent = "Photo selected. Convert it when you're ready.";
     }
   });
   vectorizeButton.addEventListener("click", convertPhoto);
   document.querySelector("#clear-product-image").addEventListener("click", () => {
+    conversionId += 1;
     photoInput.value = "";
     clearConvertedImage();
   });
   productForm.elements.image.addEventListener("input", () => {
     if (!productForm.elements.image.value || !photoInput.files.length) return;
+    conversionId += 1;
     photoInput.value = "";
     clearConvertedImage();
   });
