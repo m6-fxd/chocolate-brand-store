@@ -11,9 +11,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const imagePreview = document.querySelector("#product-image-preview");
   const imagePreviewElement = document.querySelector("#product-image-preview-img");
   const imageSize = document.querySelector("#product-image-size");
+  const ownerAdminCard = document.querySelector("#owner-admin-card");
+  const adminManagementForm = document.querySelector("#admin-management-form");
+  const adminManagementFeedback = document.querySelector("#admin-management-feedback");
+  const storeAdminList = document.querySelector("#store-admin-list");
   let convertedSvg = null;
   let previewUrl = "";
   let conversionId = 0;
+  let isOwner = false;
   let products = [];
 
   if (!db.configured) {
@@ -29,12 +34,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       location.replace("admin-login.html");
       return;
     }
-    const profile = await db.getProfile(session.user.id);
-    if (profile.role !== "admin") {
+    const access = await db.manageStoreAdmins("access");
+    if (!access.admin) {
       await db.signOut();
       location.replace("admin-login.html");
       return;
     }
+    isOwner = access.owner;
   } catch {
     location.replace("admin-login.html");
     return;
@@ -42,9 +48,64 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.body.classList.remove("auth-pending");
   store.initSite();
+  if (isOwner) {
+    document.querySelector(".admin-header-label").innerHTML = '<span class="admin-dot"></span> Store owner · Super admin';
+  }
   document.querySelector("#admin-date").textContent = new Intl.DateTimeFormat("en-US", {
     weekday: "long", month: "long", day: "numeric"
   }).format(new Date());
+  if (isOwner) {
+    ownerAdminCard.classList.remove("is-hidden");
+    renderStoreAdmins().catch((error) => {
+      storeAdminList.innerHTML = `<p class="admin-feedback is-error">Couldn't load administrators: ${store.escapeHtml(error.message)}</p>`;
+    });
+  }
+
+  async function renderStoreAdmins() {
+    const result = await db.manageStoreAdmins("list");
+    storeAdminList.innerHTML = result.admins.length ? result.admins.map((admin) => `
+      <article class="owner-admin-row">
+        <div><strong>${store.escapeHtml(admin.display_name || "Store administrator")}</strong><span>${store.escapeHtml(admin.email || "")}</span></div>
+        <button class="row-action delete-action" type="button" data-revoke-admin="${store.escapeHtml(admin.email || "")}">Remove access</button>
+      </article>`).join("") : '<p class="empty-state">No additional administrators yet.</p>';
+  }
+
+  adminManagementForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = adminManagementForm.querySelector('[type="submit"]');
+    const email = String(new FormData(adminManagementForm).get("email")).trim();
+    submit.disabled = true;
+    adminManagementFeedback.textContent = "";
+    adminManagementFeedback.classList.remove("is-error");
+    try {
+      const result = await db.manageStoreAdmins("grant", email);
+      adminManagementForm.reset();
+      adminManagementFeedback.textContent = `${result.message}${result.auditWarning ? ` ${result.auditWarning}` : ""}`;
+      await renderStoreAdmins();
+    } catch (error) {
+      adminManagementFeedback.textContent = error.message || "Administrator access could not be changed.";
+      adminManagementFeedback.classList.add("is-error");
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  storeAdminList.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-revoke-admin]");
+    if (!button || !window.confirm(`Remove administrator access for ${button.dataset.revokeAdmin}?`)) return;
+    button.disabled = true;
+    adminManagementFeedback.textContent = "";
+    adminManagementFeedback.classList.remove("is-error");
+    try {
+      const result = await db.manageStoreAdmins("revoke", button.dataset.revokeAdmin);
+      adminManagementFeedback.textContent = `${result.message}${result.auditWarning ? ` ${result.auditWarning}` : ""}`;
+      await renderStoreAdmins();
+    } catch (error) {
+      adminManagementFeedback.textContent = error.message || "Administrator access could not be changed.";
+      adminManagementFeedback.classList.add("is-error");
+      button.disabled = false;
+    }
+  });
 
   function populateBannerForm(banner) {
     const fields = {

@@ -9,12 +9,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=bag-checkout">
+    <link rel="stylesheet" href="styles.css?v=owner-admin">
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script defer src="supabase-config.js"></script>
-    <script defer src="db.js?v=bag-checkout"></script>
-    <script defer src="store.js?v=bag-checkout"></script>
-    <script defer src="admin.js"></script>
+    <script defer src="db.js?v=owner-admin"></script>
+    <script defer src="store.js?v=owner-admin"></script>
+    <script defer src="admin.js?v=owner-admin"></script>
   </head>
   <body class="admin-body auth-pending">
     <header class="site-header admin-header">
@@ -26,6 +26,15 @@
       <div class="admin-welcome"><div><span class="eyebrow">Your little corner of the shop</span><h1>Good morning.</h1><p>Make something lovely happen today.</p></div><div class="admin-date" id="admin-date"></div></div>
       <div class="admin-notice"><strong>Secure workspace</strong> Product, promotion, and newsletter data is stored in your Supabase database.</div>
       <div class="admin-stats"><div><span>NEWSLETTER COMMUNITY</span><strong id="subscriber-count">—</strong><small>subscribers</small></div><div><span>RECENT STORE CHANGES</span><strong id="activity-count">—</strong><small>latest entries</small></div></div>
+      <section class="admin-card is-hidden" id="owner-admin-card">
+        <div class="admin-card-heading"><div><span class="eyebrow">Owner controls</span><h2>Store administrators</h2><p>Only the permanent store owner can grant or remove administrator access.</p></div><span class="card-icon">♙</span></div>
+        <form class="admin-form owner-admin-form" id="admin-management-form">
+          <label>Invite or promote by email<input type="email" name="email" maxlength="254" autocomplete="email" required placeholder="teammate@example.com"></label>
+          <button class="button button-dark" type="submit">Grant administrator access <span>↗</span></button>
+          <p class="admin-feedback" id="admin-management-feedback" aria-live="polite"></p>
+        </form>
+        <div class="owner-admin-list" id="store-admin-list" aria-live="polite"><p class="empty-state">Loading administrators…</p></div>
+      </section>
       <section class="admin-card">
         <div class="admin-card-heading"><div><span class="eyebrow">First impressions</span><h2>Homepage promotion</h2><p>Make your next big thing the first thing they see.</p></div><span class="card-icon">✳</span></div>
         <form id="banner-form" class="admin-form">

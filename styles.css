@@ -226,6 +226,15 @@ h1, h2, p { margin-top: 0; }
 .field-optional { display: inline; }
 .admin-form .button { justify-self: start; margin-top: 3px; }
 .admin-feedback { min-height: 14px; margin: 0; color: #567348; font-size: 10px; }
+.admin-feedback.is-error { color: #a34435; }
+.owner-admin-form { max-width: 470px; }
+.owner-admin-form .button:disabled { opacity: .6; cursor: wait; }
+.owner-admin-list { margin-top: 21px; border-top: 1px solid var(--line); }
+.owner-admin-row { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); }
+.owner-admin-row > div { min-width: 0; display: grid; gap: 5px; }
+.owner-admin-row strong { font-family: var(--serif); font-size: 14px; }
+.owner-admin-row span { overflow-wrap: anywhere; color: var(--muted); font-size: 9px; }
+.owner-admin-row .row-action { flex: 0 0 auto; }
 .admin-form-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 13px; }
 .is-hidden { display: none !important; }
 .product-total { display: inline-grid; min-width: 24px; height: 24px; margin-left: 5px; place-items: center; vertical-align: 3px; border-radius: 50%; background: var(--cream); color: var(--rust); font-family: var(--sans); font-size: 10px; letter-spacing: 0; }

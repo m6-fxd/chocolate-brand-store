@@ -103,6 +103,25 @@
     return throwIfError(await requireClient().from("user_profiles").select("id, display_name, role, created_at").eq("id", userId).single());
   }
 
+  async function manageStoreAdmins(action, email) {
+    const result = await requireClient().functions.invoke("manage-store-admins", {
+      body: { action, ...(email ? { email } : {}) }
+    });
+    if (result.error) {
+      const context = result.error.context;
+      if (context instanceof Response) {
+        try {
+          const details = await context.json();
+          throw new Error(details.error || result.error.message);
+        } catch (error) {
+          if (error instanceof Error && error.message !== result.error.message) throw error;
+        }
+      }
+      throw result.error;
+    }
+    return result.data;
+  }
+
   async function addCartItem(productId) {
     if (!configured) return false;
     const supabase = requireClient();
@@ -208,7 +227,7 @@
 
   window.CacaoDB = {
     configured, client, getProducts, saveProduct, deleteProduct, uploadProductImage, deleteProductImage, getBanner, saveBanner,
-    getSession, getProfile, addCartItem, getCartCount, getCartItems, setCartItemQuantity, mergeCartItem, subscribeEmail, getAdminActivity,
+    getSession, getProfile, manageStoreAdmins, addCartItem, getCartCount, getCartItems, setCartItemQuantity, mergeCartItem, subscribeEmail, getAdminActivity,
     sendContactMessage, getContactMessages, updateContactMessageStatus, getSubscriberCount,
     signIn: (email, password) => requireClient().auth.signInWithPassword({ email, password }),
     signUp: (email, password, displayName) => requireClient().auth.signUp({

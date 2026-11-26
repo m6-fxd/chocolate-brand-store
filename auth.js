@@ -70,9 +70,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   } else {
     try {
       const signedIn = await getSignedInProfile();
-      if (adminMode && signedIn?.profile.role === "admin") {
-        location.href = "admin.html";
-        return;
+      if (adminMode && signedIn) {
+        const access = await db.manageStoreAdmins("access");
+        if (access.admin) {
+          location.href = "admin.html";
+          return;
+        }
       }
       if (!adminMode && signedIn) showCustomerAccount(signedIn.session, signedIn.profile);
     } catch (error) {
@@ -92,8 +95,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           try {
             const result = await db.signIn(String(values.get("email")).trim(), String(values.get("password")));
             if (result.error) throw result.error;
-            const profile = await db.getProfile(result.data.user.id);
-            if (profile.role !== "admin") {
+            const access = await db.manageStoreAdmins("access");
+            if (!access.admin) {
               await db.signOut();
               throw new Error("This account doesn't have store administrator access.");
             }

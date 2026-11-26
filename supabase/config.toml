@@ -1,0 +1,2 @@
+[functions.manage-store-admins]
+verify_jwt = true

@@ -1,4 +1,4 @@
--- Run this once in your Supabase project's SQL Editor.
+-- Run this updated script in your Supabase project's SQL Editor.
 create extension if not exists pgcrypto;
 
 create table if not exists public.user_profiles (
@@ -7,6 +7,15 @@ create table if not exists public.user_profiles (
   role text not null default 'customer' check (role in ('customer', 'admin')),
   created_at timestamptz not null default now()
 );
+
+create table if not exists public.store_owner (
+  singleton boolean primary key default true check (singleton),
+  user_id uuid not null unique references auth.users (id) on delete restrict,
+  created_at timestamptz not null default now()
+);
+alter table public.store_owner enable row level security;
+revoke all on public.store_owner from public, anon, authenticated, service_role;
+grant select, insert on public.store_owner to service_role;
 
 create or replace function public.create_user_profile()
 returns trigger
@@ -34,13 +43,52 @@ security definer
 set search_path = ''
 as $$
   select exists (
+    select 1 from public.store_owner
+    where user_id = (select auth.uid())
+  ) or exists (
     select 1 from public.user_profiles
     where id = (select auth.uid()) and role = 'admin'
   );
 $$;
 
+create or replace function public.is_store_owner()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.store_owner
+    where user_id = (select auth.uid())
+  );
+$$;
+
 revoke all on function public.is_store_admin() from public;
 grant execute on function public.is_store_admin() to authenticated;
+revoke all on function public.is_store_owner() from public;
+grant execute on function public.is_store_owner() to authenticated;
+
+create or replace function public.prevent_store_owner_role_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.role is distinct from old.role
+    and exists (select 1 from public.store_owner where user_id = old.id) then
+    raise exception 'The store owner role cannot be changed';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_store_owner_role on public.user_profiles;
+create trigger protect_store_owner_role
+  before update of role on public.user_profiles
+  for each row execute function public.prevent_store_owner_role_change();
+revoke all on function public.prevent_store_owner_role_change() from public;
 
 create table if not exists public.products (
   id text primary key,
@@ -163,15 +211,7 @@ create policy "Customers and admins can read profiles"
   on public.user_profiles for select to authenticated
   using (id = (select auth.uid()) or (select public.is_store_admin()));
 drop policy if exists "Customers can update their own profile" on public.user_profiles;
-create policy "Customers can update their own profile"
-  on public.user_profiles for update to authenticated
-  using (id = (select auth.uid()) and role = 'customer')
-  with check (id = (select auth.uid()) and role = 'customer');
 drop policy if exists "Admins can update profiles" on public.user_profiles;
-create policy "Admins can update profiles"
-  on public.user_profiles for update to authenticated
-  using ((select public.is_store_admin()))
-  with check ((select public.is_store_admin()));
 
 drop policy if exists "Anyone can read products" on public.products;
 create policy "Anyone can read products"
@@ -256,13 +296,16 @@ create trigger audit_promotion_changes
   for each row execute function public.log_store_change();
 
 grant select on public.products, public.homepage_promotion to anon, authenticated;
-grant select, update on public.user_profiles to authenticated;
+revoke all on public.user_profiles from public, anon, authenticated;
+grant select on public.user_profiles to authenticated;
+grant select, update on public.user_profiles to service_role;
 grant select, insert, update, delete on public.cart_items to authenticated;
 grant insert on public.newsletter_subscribers to anon, authenticated;
 grant select on public.newsletter_subscribers, public.store_audit_log to authenticated;
 grant insert on public.contact_messages to anon, authenticated;
 grant select, update on public.contact_messages to authenticated;
 grant insert, update, delete on public.products, public.homepage_promotion to authenticated;
+grant insert on public.store_audit_log to service_role;
 
 insert into public.products (id, name, category, description, price, size, image, badge, sort_order)
 values
@@ -303,7 +346,5 @@ create policy "Admins delete product SVGs"
   on storage.objects for delete to authenticated
   using (bucket_id = 'product-photos' and (select public.is_store_admin()));
 
--- After the first account signs up, grant admin access from the SQL Editor:
--- update public.user_profiles
--- set role = 'admin'
--- where id = (select id from auth.users where email = 'you@example.com');
+-- The owner is registered once by the server-side admin-management function
+-- after OWNER_EMAIL is configured. Do not assign roles directly from SQL.
