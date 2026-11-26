@@ -1,2 +1,2 @@
-window.CACAO_SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
-window.CACAO_SUPABASE_ANON_KEY = "YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY";
+window.CACAO_SUPABASE_URL = "https://mehlxtwjaelgoxvgcaqe.supabase.co";
+window.CACAO_SUPABASE_ANON_KEY = "sb_publishable_S3BaAG4lL6Plu093VwSgeA_VV6PMv3-";
