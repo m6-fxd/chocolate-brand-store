@@ -278,6 +278,31 @@ insert into public.homepage_promotion (id, eyebrow, title, description, button_t
 values (true, 'A sweeter kind of everyday', 'A little more delicious.', 'Small-batch chocolate, made slowly and shared generously. Find your new favorite little ritual.', 'Discover the collection', 'shop.html', 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=1400&q=85')
 on conflict (id) do nothing;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('product-photos', 'product-photos', true, 5242880, array['image/svg+xml'])
+on conflict (id) do update
+set public = true,
+    file_size_limit = 5242880,
+    allowed_mime_types = array['image/svg+xml'];
+
+drop policy if exists "Anyone can view product SVGs" on storage.objects;
+create policy "Anyone can view product SVGs"
+  on storage.objects for select to anon, authenticated
+  using (bucket_id = 'product-photos');
+drop policy if exists "Admins upload product SVGs" on storage.objects;
+create policy "Admins upload product SVGs"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'product-photos' and (select public.is_store_admin()));
+drop policy if exists "Admins update product SVGs" on storage.objects;
+create policy "Admins update product SVGs"
+  on storage.objects for update to authenticated
+  using (bucket_id = 'product-photos' and (select public.is_store_admin()))
+  with check (bucket_id = 'product-photos' and (select public.is_store_admin()));
+drop policy if exists "Admins delete product SVGs" on storage.objects;
+create policy "Admins delete product SVGs"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'product-photos' and (select public.is_store_admin()));
+
 -- After the first account signs up, grant admin access from the SQL Editor:
 -- update public.user_profiles
 -- set role = 'admin'

@@ -36,6 +36,37 @@
     return throwIfError(await requireClient().from("products").delete().eq("id", id));
   }
 
+  async function uploadProductImage(productId, svgBlob) {
+    const bucket = "product-photos";
+    const path = `${productId}.svg`;
+    const result = await requireClient().storage.from(bucket).upload(path, svgBlob, {
+      cacheControl: "3600",
+      contentType: "image/svg+xml",
+      upsert: true
+    });
+    if (result.error) throw result.error;
+    const publicUrl = requireClient().storage.from(bucket).getPublicUrl(path).data.publicUrl;
+    const url = new URL(publicUrl);
+    url.searchParams.set("v", String(Date.now()));
+    return url.href;
+  }
+
+  async function deleteProductImage(imageUrl) {
+    let url;
+    try {
+      url = new URL(imageUrl);
+    } catch {
+      return;
+    }
+    const prefix = "/storage/v1/object/public/product-photos/";
+    const markerIndex = url.pathname.indexOf(prefix);
+    if (markerIndex < 0) return;
+    const path = decodeURIComponent(url.pathname.slice(markerIndex + prefix.length));
+    if (!path) return;
+    const result = await requireClient().storage.from("product-photos").remove([path]);
+    if (result.error) throw result.error;
+  }
+
   async function getBanner() {
     const row = throwIfError(await requireClient().from("homepage_promotion").select("*").eq("id", true).maybeSingle());
     if (!row) throw new Error("No homepage promotion found. Run database.sql in the Supabase SQL Editor.");
@@ -131,7 +162,7 @@
   }
 
   window.CacaoDB = {
-    configured, client, getProducts, saveProduct, deleteProduct, getBanner, saveBanner,
+    configured, client, getProducts, saveProduct, deleteProduct, uploadProductImage, deleteProductImage, getBanner, saveBanner,
     getSession, getProfile, addCartItem, getCartCount, subscribeEmail, getAdminActivity,
     sendContactMessage, getContactMessages, updateContactMessageStatus, getSubscriberCount,
     signIn: (email, password) => requireClient().auth.signInWithPassword({ email, password }),

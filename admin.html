@@ -9,8 +9,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=story-contact">
+    <link rel="stylesheet" href="styles.css?v=svg-upload">
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
     <script defer src="supabase-config.js"></script>
     <script defer src="db.js"></script>
     <script defer src="store.js"></script>
@@ -45,7 +46,19 @@
           <div class="form-row"><label>Product name<input name="name" maxlength="70" required placeholder="e.g. Sea Salt Dark"></label><label>Category<input name="category" maxlength="35" required placeholder="e.g. Dark chocolate"></label></div>
           <label>Description<textarea name="description" rows="3" maxlength="220" required placeholder="What makes this one special?"></textarea></label>
           <div class="form-row"><label>Price (USD)<input name="price" type="number" min="0.01" step="0.01" required placeholder="12.00"></label><label>Size<input name="size" maxlength="30" required placeholder="80g bar"></label></div>
-          <div class="form-row"><label>Image URL<input name="image" type="url" required placeholder="https://example.com/image.jpg"></label><label>Badge <span class="field-optional">(optional)</span><input name="badge" maxlength="25" placeholder="Bestseller"></label></div>
+          <div class="admin-upload-panel">
+            <label>Product photo<input id="product-photo-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+            <span class="field-hint">Choose a photo up to 5 MB. We’ll trace it into a scalable SVG for your product page.</span>
+            <div class="upload-controls">
+              <button class="button button-outline" id="vectorize-image" type="button" disabled>Convert photo to SVG</button>
+              <span class="upload-feedback" id="vectorize-feedback" aria-live="polite"></span>
+            </div>
+            <div class="upload-preview is-hidden" id="product-image-preview">
+              <img id="product-image-preview-img" alt="Preview of the vectorized product photo">
+              <div><strong>SVG preview ready</strong><span id="product-image-size"></span><button class="row-action" id="clear-product-image" type="button">Remove photo</button></div>
+            </div>
+          </div>
+          <div class="form-row"><label>Or use an image URL<input name="image" type="url" placeholder="https://example.com/image.jpg"></label><label>Badge <span class="field-optional">(optional)</span><input name="badge" maxlength="25" placeholder="Bestseller"></label></div>
           <div class="admin-form-actions"><button class="button button-dark" id="product-submit" type="submit">Add product <span>↗</span></button><button class="button button-outline is-hidden" id="cancel-edit" type="button">Cancel edit</button><p class="admin-feedback" id="product-feedback" aria-live="polite"></p></div>
         </form>
       </section>

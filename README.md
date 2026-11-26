@@ -15,7 +15,7 @@ A responsive chocolate storefront with Supabase customer accounts, a searchable 
 
 ## Supabase setup
 
-1. Create a Supabase project. In **SQL Editor**, run the complete `database.sql` file. It creates the profile, product, homepage-promotion, customer-cart, newsletter, contact-message, and audit tables; enables row-level security; and seeds the starter catalog and promotion. If the schema was installed earlier, run the updated SQL again to add the contact-message table and policies.
+1. Create a Supabase project. In **SQL Editor**, run the complete `database.sql` file. It creates the profile, product, homepage-promotion, customer-cart, newsletter, contact-message, and audit tables; enables row-level security; creates the public product-photo bucket with admin-only uploads; and seeds the starter catalog and promotion. If the schema was installed earlier, run the updated SQL again to add new tables, policies, and the storage bucket.
 2. In `supabase-config.js`, replace the placeholders with your project's **Project URL** and **publishable key** (or legacy anon key). These browser values are designed to be public; never put a `service_role` or secret key in this repository. Database row-level security enforces customer/admin access.
 3. In Supabase **Authentication → URL Configuration**, set the production Site URL to your Netlify URL and allow the `/account.html` redirect. Add your local development URL if needed.
 4. Deploy the repository to Netlify with the repository root as the publish directory and no build command.
@@ -37,9 +37,9 @@ python3 -m http.server 8000
 
 Visit `http://localhost:8000`. Configure Supabase first; otherwise the pages display a setup notice instead of pretending database writes succeeded.
 
-Passwords are handled by Supabase Auth and are never stored by this site. Signed-in customer profiles and carts, products, homepage promotions, newsletter subscriptions, contact messages, and product/promotion changes are stored in Supabase. Contact messages are visible only to admins and can be marked handled; the demo form does not send email notifications. Checkout and order management are not implemented yet.
+Passwords are handled by Supabase Auth and are never stored by this site. Signed-in customer profiles and carts, products, homepage promotions, newsletter subscriptions, contact messages, and product/promotion changes are stored in Supabase. Admins can choose a product photo in the dashboard, trace it to SVG, preview it, and upload it to Supabase Storage. Contact messages are visible only to admins and can be marked handled; the demo form does not send email notifications. Checkout and order management are not implemented yet.
 
-Product images use remote URLs; the typefaces load from Google Fonts and the Supabase client loads from jsDelivr.
+Product images can use remote URLs or be uploaded as traced SVGs to Supabase Storage. The admin dashboard loads ImageTracer.js to convert selected photos; the Supabase client and typefaces load from public CDNs.
 
 ## GitHub Pages
 

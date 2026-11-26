@@ -5,6 +5,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const productForm = document.querySelector("#product-form");
   const feedback = document.querySelector("#product-feedback");
   const bannerFeedback = document.querySelector("#banner-feedback");
+  const photoInput = document.querySelector("#product-photo-file");
+  const vectorizeButton = document.querySelector("#vectorize-image");
+  const vectorizeFeedback = document.querySelector("#vectorize-feedback");
+  const imagePreview = document.querySelector("#product-image-preview");
+  const imagePreviewElement = document.querySelector("#product-image-preview-img");
+  const imageSize = document.querySelector("#product-image-size");
+  let convertedSvg = null;
+  let previewUrl = "";
   let products = [];
 
   if (!db.configured) {
@@ -94,10 +102,139 @@ document.addEventListener("DOMContentLoaded", async () => {
   function clearProductForm() {
     productForm.reset();
     productForm.elements.id.value = "";
+    clearConvertedImage();
     document.querySelector("#product-form-title").textContent = "Add a product";
     document.querySelector("#product-submit").innerHTML = 'Add product <span>↗</span>';
     document.querySelector("#cancel-edit").classList.add("is-hidden");
   }
+
+  function clearConvertedImage() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = "";
+    convertedSvg = null;
+    imagePreviewElement.removeAttribute("src");
+    imagePreview.classList.add("is-hidden");
+    imageSize.textContent = "";
+    vectorizeFeedback.textContent = "";
+    vectorizeFeedback.classList.remove("is-error");
+    vectorizeButton.disabled = true;
+  }
+
+  function sanitizeSvg(source) {
+    const document = new DOMParser().parseFromString(source, "image/svg+xml");
+    const root = document.documentElement;
+    if (root.localName !== "svg" || document.querySelector("parsererror")) {
+      throw new Error("The photo couldn't be converted into a valid SVG.");
+    }
+    root.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    root.querySelectorAll("script, style, foreignObject, iframe, object, embed").forEach((element) => element.remove());
+    [root, ...root.querySelectorAll("*")].forEach((element) => {
+      for (const attribute of [...element.attributes]) {
+        if (/^on/i.test(attribute.name) || /^(href|xlink:href|src|srcset)$/i.test(attribute.name) || /url\s*\(/i.test(attribute.value)) {
+          element.removeAttribute(attribute.name);
+        }
+      }
+    });
+    return new XMLSerializer().serializeToString(root);
+  }
+
+  async function convertPhoto() {
+    const file = photoInput.files[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+      vectorizeFeedback.textContent = "Choose a JPG, PNG, WebP, or GIF image.";
+      vectorizeFeedback.classList.add("is-error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      vectorizeFeedback.textContent = "That photo is over 5 MB. Choose a smaller image.";
+      vectorizeFeedback.classList.add("is-error");
+      return;
+    }
+    if (!window.ImageTracer?.imagedataToSVG) {
+      vectorizeFeedback.textContent = "The SVG converter didn't load. Refresh the page and try again.";
+      vectorizeFeedback.classList.add("is-error");
+      return;
+    }
+
+    vectorizeButton.disabled = true;
+    vectorizeFeedback.classList.remove("is-error");
+    vectorizeFeedback.textContent = "Tracing the colors into a scalable SVG…";
+    clearConvertedImage();
+    vectorizeButton.disabled = true;
+
+    try {
+      const sourceUrl = URL.createObjectURL(file);
+      let image;
+      try {
+        image = await new Promise((resolve, reject) => {
+          const element = new Image();
+          element.onload = () => resolve(element);
+          element.onerror = () => reject(new Error("We couldn't read that photo. Try another image."));
+          element.src = sourceUrl;
+        });
+      } finally {
+        URL.revokeObjectURL(sourceUrl);
+      }
+
+      if (image.naturalWidth > 12000 || image.naturalHeight > 12000) {
+        throw new Error("That photo is too large to trace. Try an image under 12,000 pixels per side.");
+      }
+      const scale = Math.min(1, 720 / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) throw new Error("Your browser couldn't prepare the image for conversion.");
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      const traced = window.ImageTracer.imagedataToSVG(context.getImageData(0, 0, canvas.width, canvas.height), {
+        numberofcolors: 12,
+        colorsampling: 2,
+        ltres: 1,
+        qtres: 1,
+        pathomit: 8,
+        roundcoords: 1,
+        scale: 1,
+        strokewidth: 0
+      });
+      const svgBlob = new Blob([sanitizeSvg(traced)], { type: "image/svg+xml" });
+      if (svgBlob.size > 4 * 1024 * 1024) {
+        throw new Error("The traced SVG is too large to upload. Try a simpler photo with fewer details.");
+      }
+      convertedSvg = svgBlob;
+      previewUrl = URL.createObjectURL(svgBlob);
+      imagePreviewElement.src = previewUrl;
+      imagePreview.classList.remove("is-hidden");
+      imageSize.textContent = `${(svgBlob.size / 1024).toFixed(0)} KB SVG`;
+      vectorizeFeedback.textContent = "SVG ready. It will upload when you save the product.";
+      productForm.elements.image.value = "";
+    } catch (error) {
+      vectorizeFeedback.textContent = error.message || "We couldn't convert that photo.";
+      vectorizeFeedback.classList.add("is-error");
+    } finally {
+      vectorizeButton.disabled = !photoInput.files.length;
+    }
+  }
+
+  photoInput.addEventListener("change", () => {
+    clearConvertedImage();
+    if (photoInput.files.length) {
+      productForm.elements.image.value = "";
+      vectorizeButton.disabled = false;
+      convertPhoto();
+    }
+  });
+  vectorizeButton.addEventListener("click", convertPhoto);
+  document.querySelector("#clear-product-image").addEventListener("click", () => {
+    photoInput.value = "";
+    clearConvertedImage();
+  });
+  productForm.elements.image.addEventListener("input", () => {
+    if (!productForm.elements.image.value || !photoInput.files.length) return;
+    photoInput.value = "";
+    clearConvertedImage();
+  });
 
   bannerForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -140,8 +277,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const values = new FormData(productForm);
     const image = String(values.get("image")).trim();
     const price = Number(values.get("price"));
-    if (!store.safeImageUrl(image)) {
-      feedback.textContent = "Please enter a valid http or https image URL.";
+    if (!convertedSvg && !store.safeImageUrl(image)) {
+      feedback.textContent = "Convert an uploaded photo to SVG or enter a valid http or https image URL.";
       return;
     }
     if (!Number.isFinite(price) || price <= 0) {
@@ -164,6 +301,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       badge: String(values.get("badge")).trim()
     };
     try {
+      if (convertedSvg) product.image = await db.uploadProductImage(id, convertedSvg);
       await store.saveProduct(product);
       products = await store.getProducts();
       renderProducts();
@@ -200,9 +338,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       deleteButton.disabled = true;
       try {
         await store.deleteProduct(product.id);
+        let cleanupMessage = "";
+        try {
+          await db.deleteProductImage(product.image);
+        } catch (error) {
+          cleanupMessage = ` The product was removed, but its stored photo couldn't be cleaned up: ${error.message}`;
+        }
         products = await store.getProducts();
         renderProducts();
-        feedback.textContent = `${product.name} was removed.`;
+        feedback.textContent = cleanupMessage || `${product.name} was removed.`;
         await renderActivity();
       } catch (error) {
         feedback.textContent = `Couldn't remove the product: ${error.message}`;

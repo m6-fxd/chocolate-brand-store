@@ -173,6 +173,19 @@ h1, h2, p { margin-top: 0; }
 .admin-form input:focus, .admin-form textarea:focus { border-color: #b38368; }
 .admin-form textarea { resize: vertical; }
 .admin-form input::placeholder, .admin-form textarea::placeholder { color: #aaa198; }
+.admin-upload-panel { padding: 17px; border: 1px dashed #d8c8b7; background: #fcf8f2; }
+.admin-upload-panel > label { margin-bottom: 4px; }
+.admin-upload-panel input[type="file"] { cursor: pointer; background: #fffdfa; }
+.upload-controls { margin-top: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.upload-controls .button { min-height: 39px; padding: 0 14px; gap: 8px; font-size: 10px; }
+.upload-controls .button:disabled { opacity: .5; cursor: wait; }
+.upload-feedback { color: #587447; font-size: 9px; line-height: 1.5; }
+.upload-feedback.is-error { color: #a34435; }
+.upload-preview { margin-top: 15px; padding: 11px; display: flex; align-items: center; gap: 13px; border: 1px solid var(--line); background: #fffdfa; }
+.upload-preview > img { width: 82px; height: 82px; padding: 4px; object-fit: contain; background-color: #f3eee6; }
+.upload-preview > div { display: grid; gap: 5px; }
+.upload-preview strong { font-family: var(--serif); font-size: 13px; }
+.upload-preview span { color: var(--muted); font-size: 9px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .field-hint, .field-optional { display: block; margin-top: 6px; color: #9b9086; font-size: 9px; font-weight: 400; }
 .field-optional { display: inline; }
